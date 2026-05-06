@@ -1,0 +1,12 @@
+com\escuelaing\techcup\repository\AuditLogRepository.class
+com\escuelaing\techcup\dto\LoginRequest.class
+com\escuelaing\techcup\repository\UserRepository.class
+com\escuelaing\techcup\dto\AuthResponse.class
+com\escuelaing\techcup\model\IdentificationType.class
+com\escuelaing\techcup\model\User.class
+com\escuelaing\techcup\model\AuditLog.class
+com\escuelaing\techcup\model\Role.class
+com\escuelaing\techcup\dto\RegisterRequest.class
+com\escuelaing\techcup\dto\UpdateRoleRequest.class
+com\escuelaing\techcup\App.class
+com\escuelaing\techcup\dto\InactivateUserRequest.class
