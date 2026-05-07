@@ -1,34 +1,46 @@
 package com.escuelaing.techcup.security;
 
+import io.jsonwebtoken.*;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import java.util.Date;
 
+@Component
 public class JwtUtil {
-    private static final long EXPIRATION_TIME = 86400000; // 24 hours in milliseconds
+    @Value("${jwt.secret}")
+    private String SECRET_KEY;
+
+    @Value("${jwt.expiration}")
+    private Long EXPIRATION_TIME;
 
     public String generateToken(String email, String role) {
-        // This is a simplified implementation. In production, use a proper JWT library like jjwt
-        // For now, just return a simple token format
-        return "jwt_token_" + email + "_" + role + "_" + System.currentTimeMillis();
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("role", role)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .compact();
+    }
+
+    public String extractEmail(String token) {
+        return Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token).getBody().getSubject();
+    }
+
+    public String extractRole(String token) {
+        return Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token).getBody().get("role", String.class);
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
     }
 
     public Long getExpirationTime() {
         return EXPIRATION_TIME;
-    }
-
-    public String validateToken(String token) {
-        // Simplified validation - in production use proper JWT validation
-        if (token != null && token.startsWith("jwt_token_")) {
-            return extractEmailFromToken(token);
-        }
-        return null;
-    }
-
-    private String extractEmailFromToken(String token) {
-        // Simplified extraction - in production parse the JWT properly
-        String[] parts = token.split("_");
-        if (parts.length >= 3) {
-            return parts[2];
-        }
-        return null;
     }
 }
