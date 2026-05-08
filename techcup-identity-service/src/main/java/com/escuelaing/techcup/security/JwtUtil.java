@@ -40,6 +40,10 @@ public class JwtUtil {
         }
     }
 
+    public boolean validateToken(String token, String username) {
+        return validateToken(token) && username.equals(extractEmail(token));
+    }
+
     public Long getExpirationTime() {
         return EXPIRATION_TIME;
     }
