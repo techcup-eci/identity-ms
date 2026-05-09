@@ -1,3 +1,26 @@
+<<<<<<< HEAD
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\App.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\controller\IdentityController.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\dto\AuthResponse.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\dto\InactivateUserRequest.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\dto\LoginRequest.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\dto\RegisterRequest.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\dto\UpdateRoleRequest.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\dto\UserResponse.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\exception\BusinessException.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\model\AuditLog.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\model\IdentificationType.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\model\Role.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\model\User.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\repository\AuditLogRepository.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\repository\UserRepository.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\security\JwtAuthenticationFilter.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\security\JwtUtil.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\security\SecurityConfig.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\security\UserDetailsServiceImpl.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\service\AuditService.java
+C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\service\AuthService.java
+=======
 C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\controller\IdentityController.java
 C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\service\AuthService.java
 C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\repository\AuditLogRepository.java
@@ -16,3 +39,4 @@ C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\jav
 C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\model\IdentificationType.java
 C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\dto\RegisterRequest.java
 C:\Users\karol\Downloads\identity-ms-nuevo\techcup-identity-service\src\main\java\com\escuelaing\techcup\model\User.java
+>>>>>>> origin/develop
