@@ -6,6 +6,8 @@ import com.escuelaing.techcup.model.User;
 import com.escuelaing.techcup.model.Role;
 import com.escuelaing.techcup.repository.UserRepository;
 import com.escuelaing.techcup.security.JwtUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     @Autowired
     private UserRepository userRepository;
@@ -70,8 +74,6 @@ public class AuthService {
         user.setRole(request.getRole());
 
         userRepository.save(user);
-
-        // Auditoría
         auditService.log("REGISTER", request.getEmail(), "Usuario registrado exitosamente");
     }
 
@@ -81,17 +83,19 @@ public class AuthService {
                 .orElseThrow(() -> new BusinessException("Credenciales inválidas"));
 
         if (!user.getActive()) {
+            log.warn("Intento de login de usuario inactivo: {}", request.getEmail());
             throw new BusinessException("Usuario inactivo. Contacte al administrador.");
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            log.warn("Contraseña incorrecta para el usuario: {}", request.getEmail());
             throw new BusinessException("Credenciales inválidas");
         }
 
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
         Long expiration = jwtUtil.getExpirationTime();
 
-        // Auditoría
+        log.info("Login exitoso: {} desde IP {}", user.getEmail(), ipAddress);
         auditService.log("LOGIN", user.getEmail(), "Inicio de sesión exitoso desde IP: " + ipAddress);
 
         AuthResponse response = new AuthResponse();
@@ -104,6 +108,7 @@ public class AuthService {
 
     @Transactional
     public void logout(String email, String ipAddress) {
+        log.info("Logout: {} desde IP {}", email, ipAddress);
         auditService.log("LOGOUT", email, "Cierre de sesión desde IP: " + ipAddress);
     }
 
@@ -124,7 +129,7 @@ public class AuthService {
         targetUser.setRole(request.getNewRole());
         userRepository.save(targetUser);
 
-        auditService.log("UPDATE_ROLE", targetUser.getEmail(), 
+        auditService.log("UPDATE_ROLE", targetUser.getEmail(),
             "Rol cambiado de " + oldRole + " a " + request.getNewRole() + " por " + adminEmail);
     }
 
@@ -146,7 +151,7 @@ public class AuthService {
         targetUser.setActive(false);
         userRepository.save(targetUser);
 
-        auditService.log("INACTIVATE_USER", targetUser.getEmail(), 
+        auditService.log("INACTIVATE_USER", targetUser.getEmail(),
             "Usuario inactivado por " + adminEmail);
     }
 
