@@ -11,11 +11,12 @@ public class AuditService {
     @Autowired
     private AuditLogRepository auditLogRepository;
 
-    public void log(String action, String userEmail, String details) {
+    public void log(String action, String userEmail, String details, String ipAddress) {
         AuditLog log = new AuditLog();
         log.setAction(action);
         log.setUserEmail(userEmail);
         log.setDetails(details);
+        log.setIpAddress(ipAddress);
         auditLogRepository.save(log);
     }
 }
