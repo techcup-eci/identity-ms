@@ -1,0 +1,27 @@
+# Created at 2026-05-15T22:19:03.910
+WARNING: A restricted method in java.lang.System has been called
+
+# Created at 2026-05-15T22:19:03.910
+WARNING: java.lang.System::load has been called by org.apache.tomcat.jni.Library in an unnamed module (file:/C:/Users/LENOVO/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/9.0.83/tomcat-embed-core-9.0.83.jar)
+
+# Created at 2026-05-15T22:19:03.911
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+
+# Created at 2026-05-15T22:19:03.911
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+# Created at 2026-05-15T22:19:03.911
+
+
+# Created at 2026-05-15T22:19:04.502
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+
+# Created at 2026-05-15T22:19:04.503
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by io.netty.util.internal.PlatformDependent0$4 (file:/C:/Users/LENOVO/.m2/repository/io/netty/netty-common/4.1.101.Final/netty-common-4.1.101.Final.jar)
+
+# Created at 2026-05-15T22:19:04.503
+WARNING: Please consider reporting this to the maintainers of class io.netty.util.internal.PlatformDependent0$4
+
+# Created at 2026-05-15T22:19:04.503
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+
