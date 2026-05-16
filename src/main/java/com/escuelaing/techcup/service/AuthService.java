@@ -1,5 +1,12 @@
 package com.escuelaing.techcup.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
+
 import com.escuelaing.techcup.dto.AuthResponse;
 import com.escuelaing.techcup.dto.LoginRequest;
 import com.escuelaing.techcup.dto.RegisterRequest;
@@ -9,12 +16,6 @@ import com.escuelaing.techcup.model.Role;
 import com.escuelaing.techcup.model.User;
 import com.escuelaing.techcup.repository.UserRepository;
 import com.escuelaing.techcup.security.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
 public class AuthService {
