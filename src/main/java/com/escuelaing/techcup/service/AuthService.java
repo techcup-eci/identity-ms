@@ -19,8 +19,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Service
 public class AuthService {
 
-    @Value("${services.user-service.url}")
-    private String userServiceUrl;
+    @Value("${services.api-gateway.url}")
+    private String apiGatewayUrl;
 
     @Autowired
     private WebClient.Builder webClientBuilder;
@@ -36,6 +36,10 @@ public class AuthService {
 
     @Autowired
     private AuditService auditService;
+
+    //Secreto entre gateway y microservicio
+    @Value("${internal.secret}")
+    private String internalSecret;
 
     @Transactional
     public AuthResponse login(LoginRequest request, String ipAddress) {
@@ -73,7 +77,8 @@ public class AuthService {
         // 1. Llamar al user-service para crear el usuario completo
         UserServiceResponse userResponse = webClientBuilder.build()
                 .post()
-                .uri(userServiceUrl + "/api/users/register")
+                .uri(apiGatewayUrl + "/api/users/register")
+                .header("X-Internal-Secret", internalSecret)
                 .bodyValue(request)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError(), clientResponse ->
