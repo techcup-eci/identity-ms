@@ -1,9 +1,6 @@
 package com.escuelaing.techcup.service;
 
-import com.escuelaing.techcup.dto.AuthResponse;
-import com.escuelaing.techcup.dto.LoginRequest;
-import com.escuelaing.techcup.dto.RegisterRequest;
-import com.escuelaing.techcup.dto.UserServiceResponse;
+import com.escuelaing.techcup.dto.*;
 import com.escuelaing.techcup.exception.BusinessException;
 import com.escuelaing.techcup.model.Role;
 import com.escuelaing.techcup.model.User;
@@ -76,7 +73,7 @@ public class AuthService {
         UserServiceResponse userResponse = webClientBuilder.build()
                 .post()
                 .uri(apiGatewayUrl + "/api/users/register")
-                .bodyValue(request)
+                .bodyValue(new UserServiceRequest(request.getEmail(), request.getRole()))
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError(), clientResponse ->
                         clientResponse.bodyToMono(String.class)
