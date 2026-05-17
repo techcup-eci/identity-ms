@@ -1,6 +1,7 @@
 package com.escuelaing.techcup.dto;
 
 public class AuthResponse {
+    private Long id;
     private String token;
     private String type = "Bearer";
     private String email;
@@ -10,11 +11,16 @@ public class AuthResponse {
     public AuthResponse() {}
 
     public AuthResponse(String token, String email, String role, Long expiresIn) {
+
         this.token = token;
         this.email = email;
         this.role = role;
         this.expiresIn = expiresIn;
     }
+
+    public Long getId() { return id; }
+
+    public void setId(Long id) { this.id = id; }
 
     public String getToken() {
         return token;

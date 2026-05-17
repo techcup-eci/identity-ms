@@ -1,0 +1,48 @@
+HELP.md
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+
+### VS Code ###
+.vscode/
+
+### Maven ###
+target/
+*.jar
+*.war
+*.class
+.mvn/
+!.mvn/wrapper/maven-wrapper.properties
+
+### Logs ###
+*.log
+logs/
+
+### Environment ###
+.env
+application-local.yml
+
+### Personales ###
+classpath.txt
+hashgen.jsh
+*.jsh
