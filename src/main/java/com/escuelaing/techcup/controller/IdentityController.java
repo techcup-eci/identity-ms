@@ -7,11 +7,12 @@ import com.escuelaing.techcup.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/identity")
@@ -42,5 +43,26 @@ public class IdentityController {
             HttpServletRequest request) {
         authService.logout(userDetails.getUsername(), request.getRemoteAddr());
         return ResponseEntity.ok("Sesión cerrada exitosamente");
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<AuthResponse> refreshToken(
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest request) {
+        return ResponseEntity.ok(
+                authService.refreshToken(
+                        userDetails.getUsername(),
+                        request.getRemoteAddr()));
+    }
+
+    // Solo el ADMIN puede cambiar roles
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/users/{userId}/rol")
+    public ResponseEntity<?> cambiarRol(
+            @PathVariable Long userId,
+            @RequestParam String nuevoRol,
+            HttpServletRequest request) {
+        authService.cambiarRol(userId, nuevoRol, request.getRemoteAddr());
+        return ResponseEntity.ok("Rol actualizado correctamente");
     }
 }
