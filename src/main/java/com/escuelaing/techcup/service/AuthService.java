@@ -78,7 +78,6 @@ public class AuthService {
         UserServiceResponse userResponse = webClientBuilder.build()
                 .post()
                 .uri(apiGatewayUrl + "/api/users/register")
-                .header("X-Internal-Secret", internalSecret)
                 .bodyValue(request)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError(), clientResponse ->
