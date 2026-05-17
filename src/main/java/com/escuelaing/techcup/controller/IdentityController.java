@@ -15,9 +15,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -125,7 +122,7 @@ public class IdentityController {
             @ApiResponse(responseCode = "404", description = "Usuario no encontrado",
                     content = @Content)
     })
-    @PreAuthorize("hasRole('ADMIN')")
+
     @PatchMapping("/users/{userId}/rol")
     public ResponseEntity<?> cambiarRol(
             @PathVariable Long userId,
