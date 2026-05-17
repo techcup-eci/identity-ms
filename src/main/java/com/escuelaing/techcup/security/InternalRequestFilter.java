@@ -4,10 +4,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 @Component
@@ -24,9 +24,12 @@ public class InternalRequestFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Login y register son públicos — no necesitan el secret
+        // Rutas públicas — no necesitan el secret
         if (path.equals("/api/identity/login") ||
-                path.equals("/api/identity/register")) {
+                path.equals("/api/identity/register") ||
+                path.startsWith("/swagger-ui") ||
+                path.startsWith("/v3/api-docs") ||
+                path.startsWith("/api-docs")) {
             filterChain.doFilter(request, response);
             return;
         }
