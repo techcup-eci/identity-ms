@@ -31,7 +31,12 @@ public class SecurityConfig {
                         // rutas públicas
                         .requestMatchers(
                                 "/api/identity/login",
-                                "/api/identity/register"
+                                "/api/identity/register",
+                                // Swagger
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/api-docs/**"
                         ).permitAll()
                         // solo ADMIN puede cambiar roles
                         .requestMatchers("/api/identity/users/*/rol").hasRole("ADMIN")

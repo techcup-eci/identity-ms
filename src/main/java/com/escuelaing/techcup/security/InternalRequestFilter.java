@@ -24,9 +24,12 @@ public class InternalRequestFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Login y register son públicos — no necesitan el secret
+        // Rutas públicas — no necesitan el secret
         if (path.equals("/api/identity/login") ||
-                path.equals("/api/identity/register")) {
+                path.equals("/api/identity/register") ||
+                path.startsWith("/swagger-ui") ||
+                path.startsWith("/v3/api-docs") ||
+                path.startsWith("/api-docs")) {
             filterChain.doFilter(request, response);
             return;
         }
