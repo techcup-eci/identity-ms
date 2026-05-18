@@ -22,6 +22,9 @@ public class User {
     @Column(nullable = false)
     private Role role = Role.INVITED;
 
+    @Column
+    private Long usersMsUserId;  // ID from users-and-players-ms for cross-service linking
+
     public User() {}
 
     public Long getId() { return id; }
@@ -38,4 +41,7 @@ public class User {
 
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
+
+    public Long getUsersMsUserId() { return usersMsUserId; }
+    public void setUsersMsUserId(Long usersMsUserId) { this.usersMsUserId = usersMsUserId; }
 }
