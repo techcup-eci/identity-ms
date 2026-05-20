@@ -129,7 +129,7 @@ public class IdentityController {
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/users/{userId}/rol")
-    public ResponseEntity<?> cambiarRol(
+    public ResponseEntity<?> ChangeRol(
             @Parameter(description = "ID del usuario a modificar", required = true)
             @PathVariable Long userId,
             @Parameter(description = "Nuevo rol a asignar (ej: ADMIN, USER)", required = true)
