@@ -80,9 +80,9 @@ public class IdentityController {
     })
     @PostMapping("/logout")
     public ResponseEntity<?> logout(
-            @RequestHeader("X-User-Id") String email,
+            @RequestHeader("X-User-Id") String userId,
             HttpServletRequest request) {
-        authService.logout(email, request.getRemoteAddr());
+        authService.logout(userId, request.getRemoteAddr());
         return ResponseEntity.ok("Sesión cerrada exitosamente");
     }
 
@@ -99,10 +99,10 @@ public class IdentityController {
     })
     @PostMapping("/refresh-token")
     public ResponseEntity<AuthResponse> refreshToken(
-            @RequestHeader("X-User-Id") String email,
+            @RequestHeader("Authorization") String authHeader,
             HttpServletRequest request) {
-        return ResponseEntity.ok(
-                authService.refreshToken(email, request.getRemoteAddr()));
+        String token = authHeader.substring(7);
+        return ResponseEntity.ok(authService.refeshToken(token, request.getRemoteAddr()));
     }
 
     @Operation(
@@ -124,16 +124,16 @@ public class IdentityController {
     })
 
     @PatchMapping("/users/{userId}/rol")
-    public ResponseEntity<?> cambiarRol(
+    public ResponseEntity<?> changeRol(
             @PathVariable Long userId,
-            @RequestParam String nuevoRol,
+            @RequestParam String newRol,
             @RequestHeader("X-User-Role") String userRole,
             HttpServletRequest request) {
         if (!"ROLE_ADMIN".equals(userRole) && !"ADMIN".equals(userRole)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Solo el administrador puede cambiar roles");
         }
-        authService.cambiarRol(userId, nuevoRol, request.getRemoteAddr());
+        authService.changeRol(userId, newRol, request.getRemoteAddr());
         return ResponseEntity.ok("Rol actualizado correctamente");
     }
 }

@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -40,6 +42,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 class IdentityControllerTest {
 
+    private static final Logger log = LoggerFactory.getLogger(IdentityControllerTest.class);
+
     // Seguridad simplificada — sin InternalRequestFilter
     @Configuration
     static class TestSecurityConfig {
@@ -48,9 +52,7 @@ class IdentityControllerTest {
             http
                     .csrf(AbstractHttpConfigurer::disable)
                     .authorizeHttpRequests(auth -> auth
-                            .requestMatchers("/api/identity/login", "/api/identity/register").permitAll()
-                            .requestMatchers("/api/identity/users/*/rol").hasRole("ADMIN")
-                            .anyRequest().authenticated()
+                            .anyRequest().permitAll()
                     );
             return http.build();
         }
@@ -158,11 +160,11 @@ class IdentityControllerTest {
 
     @Test
     @DisplayName("POST /logout retorna 200 con usuario autenticado")
-    @WithMockUser(username = "test@techcup.com", roles = "PLAYER")
     void logout_exitoso() throws Exception {
         doNothing().when(authService).logout(any(), any());
 
-        mockMvc.perform(post("/api/identity/logout"))
+        mockMvc.perform(post("/api/identity/logout")
+                        .header("X-User-Id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Sesión cerrada exitosamente"));
     }
@@ -171,7 +173,7 @@ class IdentityControllerTest {
     @DisplayName("POST /logout retorna 403 sin autenticación")
     void logout_sinAutenticacion() throws Exception {
         mockMvc.perform(post("/api/identity/logout"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isBadRequest());
     }
 
     // ─────────────────────────────────────────────
@@ -180,11 +182,11 @@ class IdentityControllerTest {
 
     @Test
     @DisplayName("POST /refresh-token retorna 200 con nuevo token")
-    @WithMockUser(username = "test@techcup.com", roles = "PLAYER")
     void refreshToken_exitoso() throws Exception {
-        when(authService.refreshToken(any(), any())).thenReturn(mockAuthResponse);
+        when(authService.refeshToken(any(), any())).thenReturn(mockAuthResponse);
 
-        mockMvc.perform(post("/api/identity/refresh-token"))
+        mockMvc.perform(post("/api/identity/refresh-token")
+                        .header("Authorization", "Bearer jwt-token-expirado"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value("jwt-token"));
     }
@@ -195,22 +197,22 @@ class IdentityControllerTest {
 
     @Test
     @DisplayName("PUT /users/{id}/rol retorna 200 con rol ADMIN")
-    @WithMockUser(username = "admin@techcup.com", roles = "ADMIN")
     void cambiarRol_exitoso() throws Exception {
-        doNothing().when(authService).cambiarRol(any(), any(), any());
+        doNothing().when(authService).changeRol(any(), any(), any());
 
-        mockMvc.perform(put("/api/identity/users/1/rol")
-                        .param("nuevoRol", "CAPTAIN"))
+        mockMvc.perform(patch("/api/identity/users/1/rol")
+                        .param("newRol", "CAPTAIN")
+                        .header("X-User-Role", "ADMIN"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Rol actualizado correctamente"));
     }
 
     @Test
     @DisplayName("PUT /users/{id}/rol retorna 403 sin rol ADMIN")
-    @WithMockUser(username = "player@techcup.com", roles = "PLAYER")
     void cambiarRol_sinPermisos() throws Exception {
-        mockMvc.perform(put("/api/identity/users/1/rol")
-                        .param("nuevoRol", "CAPTAIN"))
+        mockMvc.perform(patch("/api/identity/users/1/rol")
+                        .param("newRol", "CAPTAIN")
+                        .header("X-User-Role", "PLAYER"))
                 .andExpect(status().isForbidden());
     }
 }

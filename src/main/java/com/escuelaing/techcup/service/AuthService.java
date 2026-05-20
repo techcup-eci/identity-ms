@@ -50,7 +50,10 @@ public class AuthService {
             throw new BusinessException("Credenciales inválidas");
         }
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        String token = jwtUtil.generateToken(
+                String.valueOf(user.getId()),
+                user.getEmail(),
+                user.getRole().name());
         auditService.log("LOGIN", user.getEmail(), "Inicio de sesión exitoso", ipAddress);
 
         AuthResponse response = new AuthResponse();
@@ -63,8 +66,10 @@ public class AuthService {
     }
 
     @Transactional
-    public void logout(String email, String ipAddress) {
-        auditService.log("LOGOUT", email, "Cierre de sesión", ipAddress);
+    public void logout(String userId, String ipAddress) {
+        User user = userRepository.findById(Long.parseLong(userId))
+                        .orElseThrow(() -> new BusinessException("Usuario no encontrado."));
+        auditService.log("LOGOUT", user.getEmail(), "Cierre de sesión", ipAddress);
     }
 
     @Transactional
@@ -73,6 +78,7 @@ public class AuthService {
         UserServiceResponse userResponse = webClientBuilder.build()
                 .post()
                 .uri(apiGatewayUrl + "/api/users/register")
+                .header("X-Internal-Secret", internalSecret)
                 .bodyValue(new UserServiceRequest(request.getEmail(), request.getRole()))
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError(), clientResponse ->
@@ -95,7 +101,10 @@ public class AuthService {
         userRepository.save(credentials);
 
         // 4. Generar JWT
-        String token = jwtUtil.generateToken(userResponse.getEmail(), userResponse.getRol());
+        String token = jwtUtil.generateToken(
+                String.valueOf(credentials.getId()),
+                userResponse.getEmail(),
+                userResponse.getRol());
 
         // 5. Auditoría
         auditService.log("REGISTER", userResponse.getEmail(), "Registro exitoso", ipAddress);
@@ -111,17 +120,21 @@ public class AuthService {
     }
 
     @Transactional
-    public void cambiarRol(Long userId, String nuevoRol, String ipAddress) {
+    public void changeRol(Long userId, String newRol, String ipAddress) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException("Usuario no encontrado"));
+
+        if (!user.getActive()) {
+            throw new BusinessException("Usuario inactivo. No se puede cambiar el rol.");
+        }
 
         Role rolAnterior = user.getRole();
         Role rol;
 
         try {
-            rol = Role.valueOf(nuevoRol.toUpperCase());
+            rol = Role.valueOf(newRol.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new BusinessException("Rol inválido: " + nuevoRol +
+            throw new BusinessException("Rol inválido: " + newRol +
                     ". Valores válidos: INVITED, PLAYER, CAPTAIN, ORGANIZER, REFEREE, ADMIN");
         }
 
@@ -139,18 +152,26 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse refreshToken(String email, String ipAddress) {
-        User user = userRepository.findByEmail(email)
+    public AuthResponse refeshToken(String token, String ipAddress) {
+        // Extraemos al usuario
+        String userId = jwtUtil.extractUserIdIgnoringExpiration(token);
+
+        // Busca al usuario
+        User user = userRepository.findById(Long.parseLong(userId))
                 .orElseThrow(() -> new BusinessException("Usuario no encontrado"));
 
+        // Válida que el usuario no sea inactivo
         if (!user.getActive()) {
             throw new BusinessException("Usuario inactivo.");
         }
 
         // Genera nuevo token con el rol actualizado de la BD
-        String newToken = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        String newToken = jwtUtil.generateToken(
+                String.valueOf(user.getId()),
+                user.getEmail(),
+                user.getRole().name());
 
-        auditService.log("REFRESH_TOKEN", email,
+        auditService.log("REFRESH_TOKEN", userId,
                 "Token renovado con rol: " + user.getRole().name(), ipAddress);
 
         AuthResponse response = new AuthResponse();

@@ -28,19 +28,9 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // rutas públicas
-                        .requestMatchers(
-                                "/api/identity/login",
-                                "/api/identity/register",
-                                // Swagger
-                                "/swagger-ui.html",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/api-docs/**"
-                        ).permitAll()
-                        // solo ADMIN puede cambiar roles
-                        .requestMatchers("/api/identity/users/*/rol").hasRole("ADMIN")
-                        .anyRequest().authenticated()
+                        // El InternalFilterControla quienes pasan
+                        .anyRequest()
+                        .permitAll()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
