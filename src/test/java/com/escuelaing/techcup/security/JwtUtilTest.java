@@ -22,7 +22,7 @@ class JwtUtilTest {
     @Test
     @DisplayName("generateToken crea un token no nulo")
     void generateToken_noNulo() {
-        String token = jwtUtil.generateToken("user@techcup.com", "PLAYER");
+        String token = jwtUtil.generateToken("1","user@techcup.com", "PLAYER");
         assertNotNull(token);
         assertFalse(token.isEmpty());
     }
@@ -30,21 +30,21 @@ class JwtUtilTest {
     @Test
     @DisplayName("extractEmail extrae el email correcto del token")
     void extractEmail_correcto() {
-        String token = jwtUtil.generateToken("user@techcup.com", "PLAYER");
+        String token = jwtUtil.generateToken("1","user@techcup.com", "PLAYER");
         assertEquals("user@techcup.com", jwtUtil.extractEmail(token));
     }
 
     @Test
     @DisplayName("extractRole extrae el rol correcto del token")
     void extractRole_correcto() {
-        String token = jwtUtil.generateToken("user@techcup.com", "ADMIN");
+        String token = jwtUtil.generateToken("1","user@techcup.com", "ADMIN");
         assertEquals("ADMIN", jwtUtil.extractRole(token));
     }
 
     @Test
     @DisplayName("validateToken retorna true para un token válido")
     void validateToken_valido() {
-        String token = jwtUtil.generateToken("user@techcup.com", "PLAYER");
+        String token = jwtUtil.generateToken("1","user@techcup.com", "PLAYER");
         assertTrue(jwtUtil.validateToken(token));
     }
 
@@ -56,16 +56,16 @@ class JwtUtilTest {
 
     @Test
     @DisplayName("validateToken con username retorna true cuando coincide")
-    void validateToken_conUsername_coincide() {
-        String token = jwtUtil.generateToken("user@techcup.com", "PLAYER");
-        assertTrue(jwtUtil.validateToken(token, "user@techcup.com"));
+    void validateToken_conUserId_coincide() {
+        String token = jwtUtil.generateToken("1","user@techcup.com", "PLAYER");
+        assertTrue(jwtUtil.validateToken(token, "1"));
     }
 
     @Test
     @DisplayName("validateToken con username retorna false cuando no coincide")
-    void validateToken_conUsername_noCoincide() {
-        String token = jwtUtil.generateToken("user@techcup.com", "PLAYER");
-        assertFalse(jwtUtil.validateToken(token, "otro@techcup.com"));
+    void validateToken_conUserId_noCoincide() {
+        String token = jwtUtil.generateToken("1","user@techcup.com", "PLAYER");
+        assertFalse(jwtUtil.validateToken(token, "555"));
     }
 
     @Test
@@ -78,7 +78,7 @@ class JwtUtilTest {
     @DisplayName("token expirado no es válido")
     void validateToken_expirado() {
         ReflectionTestUtils.setField(jwtUtil, "expirationTime", -1000L);
-        String token = jwtUtil.generateToken("user@techcup.com", "PLAYER");
+        String token = jwtUtil.generateToken("1","user@techcup.com", "PLAYER");
         assertFalse(jwtUtil.validateToken(token));
     }
 }

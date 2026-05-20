@@ -71,6 +71,7 @@ class AuthServiceRegisterTest {
         when(webClientBuilder.build()).thenReturn(webClient);
         when(webClient.post()).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodySpec);
+        when(requestBodySpec.header(anyString(), anyString())).thenReturn(requestBodySpec);
         when(requestBodySpec.bodyValue(any())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
@@ -90,7 +91,8 @@ class AuthServiceRegisterTest {
         when(userRepository.existsByEmail("nuevo@techcup.com")).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encoded_password");
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
-        when(jwtUtil.generateToken("nuevo@techcup.com", "PLAYER")).thenReturn("jwt-token");
+        when(jwtUtil.generateToken(anyString(), eq("nuevo@techcup.com"), eq("PLAYER")))
+                .thenReturn("jwt-token");
         when(jwtUtil.getExpirationTime()).thenReturn(36000000L);
         doNothing().when(auditService).log(any(), any(), any(), any());
 

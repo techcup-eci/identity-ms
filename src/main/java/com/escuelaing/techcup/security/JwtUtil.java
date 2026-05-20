@@ -22,9 +22,10 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(String email, String role) {
+    public String generateToken(String userId, String email, String role) {
         return Jwts.builder()
-                .subject(email)
+                .subject(String.valueOf(userId))
+                .claim("email", email)
                 .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationTime))
@@ -33,7 +34,7 @@ public class JwtUtil {
     }
 
     public String extractEmail(String token) {
-        return getClaims(token).getSubject();
+        return getClaims(token).get("email", String.class);
     }
 
     public String extractRole(String token) {
@@ -50,7 +51,7 @@ public class JwtUtil {
     }
 
     public boolean validateToken(String token, String username) {
-        return validateToken(token) && username.equals(extractEmail(token));
+        return validateToken(token) && username.equals(getClaims(token).getSubject());
     }
 
     public Long getExpirationTime() {
@@ -63,5 +64,13 @@ public class JwtUtil {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    public String extractUserIdIgnoringExpiration(String token) {
+        try {
+            return getClaims(token).getSubject();
+        } catch (ExpiredJwtException e) {
+            return e.getClaims().getSubject();
+        }
     }
 }

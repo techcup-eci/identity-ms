@@ -42,10 +42,11 @@ class SecurityTest {
     }
 
     @Test
-    @DisplayName("Filter permite /api/identity/login sin secret")
+    @DisplayName("Filter permite /api/identity/login con secret correcto")
     void filter_permitLogin() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/identity/login");
+        request.addHeader("X-Internal-Secret", "mi-secret-interno");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         internalRequestFilter.doFilterInternal(request, response, filterChain);
@@ -55,10 +56,11 @@ class SecurityTest {
     }
 
     @Test
-    @DisplayName("Filter permite /api/identity/register sin secret")
+    @DisplayName("Filter permite /api/identity/register con secret correcto")
     void filter_permitRegister() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/identity/register");
+        request.addHeader("X-Internal-Secret", "mi-secret-interno");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         internalRequestFilter.doFilterInternal(request, response, filterChain);
