@@ -13,7 +13,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -21,24 +25,45 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class SecurityConfig {
 
     @Autowired
-    private InternalRequestFilter internalRequestFilter;
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        // El InternalFilterControla quienes pasan
-                        .anyRequest()
-                        .permitAll()
-                )
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .addFilterBefore(internalRequestFilter,
-                        UsernamePasswordAuthenticationFilter.class);
+            .cors().and()
+            .csrf().disable()
+            .authorizeRequests()
+                .antMatchers(
+                    "/api/identity/login",
+                    "/api/identity/register",
+                    "/api/identity/refresh",
+                    "/api/identity/v3/api-docs/**",
+                    "/api/identity/swagger-ui/**",
+                    "/api/identity/swagger-ui.html"
+                ).permitAll()
+                .anyRequest().authenticated()
+            .and()
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /**
+     * CORS — permite solicitudes desde el frontend React (dev y prod).
+     * En producción sobreescribir CORS_ALLOWED_ORIGINS con la URL real del frontend.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true); // necesario para enviar cookies httpOnly
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     @Bean
@@ -47,13 +72,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration authConfig) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
-    }
-
-    @Bean
-    public WebClient.Builder webClientBuilder() {
-        return WebClient.builder();
     }
 }

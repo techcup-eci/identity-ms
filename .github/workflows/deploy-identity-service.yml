@@ -1,9 +1,10 @@
-name: Deploy identity-service to Azure Container Apps
+name: CI/CD — identity-service
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 env:
@@ -12,10 +13,99 @@ env:
   CONTAINER_APP_NAME: identity-service
   ACR_NAME: acrtechcup
   IMAGE_NAME: identity-service
+  JAVA_VERSION: '17'
 
 jobs:
-  build-and-deploy:
+
+  # ─────────────────────────────────────────────────────────────────
+  # JOB 1: Calidad — pruebas, cobertura, análisis estático, Swagger
+  # ─────────────────────────────────────────────────────────────────
+  quality:
+    name: Calidad del código
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      # ── 1. Pruebas + JaCoCo + Checkstyle + SpotBugs ──────────────
+      # mvn verify corre en orden: compile → test → jacoco → checkstyle → spotbugs
+      - name: Pruebas, cobertura y análisis estático
+        run: mvn verify --batch-mode --no-transfer-progress
+        env:
+          SPRING_DATASOURCE_URL: jdbc:h2:mem:testdb
+          SPRING_DATASOURCE_USERNAME: sa
+          SPRING_DATASOURCE_PASSWORD: ''
+          JWT_SECRET: test-secret-key-for-ci-only
+          USER_SERVICE_URL: http://localhost:9999
+          ADMIN_DEFAULT_PASSWORD: admin123
+
+      # ── 2. Publicar reporte de cobertura JaCoCo ───────────────────
+      - name: Publicar reporte de cobertura
+        uses: jacoco/jacoco-report@v0.2.1
+        if: always()
+        with:
+          paths: target/site/jacoco/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 70
+          min-coverage-changed-files: 70
+          title: 'Cobertura — identity-service'
+
+      # ── 3. Generar documentación Swagger (OpenAPI JSON) ───────────
+      # Levanta el contexto de Spring para que springdoc genere el JSON
+      - name: Generar documentación Swagger
+        run: |
+          mvn spring-boot:run \
+            --batch-mode \
+            -Dspring-boot.run.arguments="--spring.datasource.url=jdbc:h2:mem:docdb --spring.datasource.driver-class-name=org.h2.Driver --spring.jpa.database-platform=org.hibernate.dialect.H2Dialect --services.user-service.url=http://localhost:9999 --springdoc.api-docs.path=/api/identity/v3/api-docs" &
+          echo "Esperando que el servicio arranque..."
+          sleep 25
+          curl -f http://localhost:8081/api/identity/v3/api-docs -o target/openapi.json
+          echo "Swagger generado exitosamente"
+          kill %1 || true
+        env:
+          JWT_SECRET: test-secret-key-for-ci-only
+          ADMIN_DEFAULT_PASSWORD: admin123
+
+      # ── 4. Subir artefactos de calidad ────────────────────────────
+      - name: Subir reporte JaCoCo
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+          retention-days: 30
+
+      - name: Subir reporte SpotBugs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spotbugs-report
+          path: target/spotbugsXml.xml
+          retention-days: 30
+
+      - name: Subir documentación Swagger
+        uses: actions/upload-artifact@v4
+        with:
+          name: swagger-openapi
+          path: target/openapi.json
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────────
+  # JOB 2: Deploy — solo corre si quality pasó y es push a main
+  # ─────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy a Azure Container Apps
+    runs-on: ubuntu-latest
+    needs: quality                          # bloquea si quality falla
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout código
@@ -27,8 +117,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Login en ACR
-        run: |
-          az acr login --name ${{ env.ACR_NAME }}
+        run: az acr login --name ${{ env.ACR_NAME }}
 
       - name: Build y Push imagen Docker
         uses: docker/build-push-action@v5
@@ -45,7 +134,7 @@ jobs:
           containerAppName: ${{ env.CONTAINER_APP_NAME }}
           containerAppEnvironment: ${{ env.CONTAINER_APP_ENV }}
           imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          targetPort: 8080
+          targetPort: 8081
           ingress: external
 
       - name: Obtener URL del servicio

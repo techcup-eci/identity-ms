@@ -1,29 +1,33 @@
 package com.escuelaing.techcup.service;
 
-import com.escuelaing.techcup.dto.*;
+import com.escuelaing.techcup.client.UserServiceClient;
+import com.escuelaing.techcup.dto.AuthResponse;
+import com.escuelaing.techcup.dto.LoginRequest;
+import com.escuelaing.techcup.dto.RegisterRequest;
 import com.escuelaing.techcup.exception.BusinessException;
+import com.escuelaing.techcup.model.RefreshToken;
 import com.escuelaing.techcup.model.Role;
 import com.escuelaing.techcup.model.User;
+import com.escuelaing.techcup.model.UserStatus;
 import com.escuelaing.techcup.repository.UserRepository;
 import com.escuelaing.techcup.security.JwtUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 @Service
 public class AuthService {
 
-    @Value("${services.api-gateway.url}")
-    private String apiGatewayUrl;
-
-    @Value("${internal.secret}")
-    private String internalSecret;
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     @Autowired
-    private WebClient.Builder webClientBuilder;
+    private UserServiceClient userServiceClient;
 
     @Autowired
     private UserRepository userRepository;
@@ -37,12 +41,25 @@ public class AuthService {
     @Autowired
     private AuditService auditService;
 
+    @Autowired
+    private RefreshTokenService refreshTokenService;
+
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null);
+    }
+
+    public List<User> findAllUsers() {
+        return userRepository.findAll();
+    }
+
+    // ── Login ────────────────────────────────────────────────────────
+
     @Transactional
     public AuthResponse login(LoginRequest request, String ipAddress) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BusinessException("Credenciales inválidas"));
 
-        if (!user.getActive()) {
+        if (user.getStatus() == UserStatus.INACTIVE) {
             throw new BusinessException("Usuario inactivo. Contacte al administrador.");
         }
 
@@ -50,136 +67,241 @@ public class AuthService {
             throw new BusinessException("Credenciales inválidas");
         }
 
-        String token = jwtUtil.generateToken(
-                String.valueOf(user.getId()),
-                user.getEmail(),
-                user.getRole().name());
+        String token = jwtUtil.generateToken(user.getId(), user.getEmail(),
+                user.getRole().name(), user.getEmail());
+
         auditService.log("LOGIN", user.getEmail(), "Inicio de sesión exitoso", ipAddress);
 
+        String rawRefreshToken = refreshTokenService.createRefreshToken(
+                user.getId(), user.getUsersMsUserId());
+
+        return buildAuthResponse(user.getId(), user.getEmail(), user.getRole().name(),
+                user.getEmail(), token, rawRefreshToken);
+    }
+
+    // ── Logout ───────────────────────────────────────────────────────
+
+    @Transactional
+    public void logout(String email, String ipAddress) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user != null) {
+            refreshTokenService.revokeAllUserTokens(user.getId());
+        }
+        auditService.log("LOGOUT", email, "Cierre de sesión", ipAddress);
+    }
+
+    // ── Refresh token ────────────────────────────────────────────────
+
+    @Transactional
+    public AuthResponse refresh(String rawRefreshToken) {
+        if (rawRefreshToken == null || rawRefreshToken.isEmpty()) {
+            throw new BusinessException("No se encontró token de refresco");
+        }
+
+        RefreshTokenService.RotationResult rotationResult =
+                refreshTokenService.rotateRefreshToken(rawRefreshToken);
+
+        RefreshToken newToken = rotationResult.getEntity();
+        String newRawToken = rotationResult.getRawToken();
+
+        User user = userRepository.findById(newToken.getUserId())
+                .orElseThrow(() -> new BusinessException("Usuario no encontrado"));
+
+        if (user.getStatus() == UserStatus.INACTIVE) {
+            throw new BusinessException("Usuario inactivo");
+        }
+
+        String accessToken = jwtUtil.generateToken(user.getId(), user.getEmail(),
+                user.getRole().name(), user.getEmail());
+
+        return buildAuthResponse(user.getId(), user.getEmail(), user.getRole().name(),
+                user.getEmail(), accessToken, newRawToken);
+    }
+
+    // ── Validate token ───────────────────────────────────────────────
+
+    public AuthResponse validate(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new BusinessException("Token no encontrado");
+        }
+
+        String token = authHeader.substring(7);
+        if (!jwtUtil.validateToken(token)) {
+            throw new BusinessException("Token inválido o expirado");
+        }
+
+        String userId = jwtUtil.extractUserId(token);
+        String email  = jwtUtil.extractEmail(token);
+        String role   = jwtUtil.extractRole(token);
+        String name   = jwtUtil.extractName(token);
+
+        Long uid = null;
+        try { uid = Long.parseLong(userId); } catch (NumberFormatException ignored) {}
+
+        AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(uid, email, role, name);
         AuthResponse response = new AuthResponse();
-        response.setId(user.getId());
-        response.setToken(token);
-        response.setEmail(user.getEmail());
-        response.setRole(user.getRole().name());
-        response.setExpiresIn(jwtUtil.getExpirationTime());
+        response.setUser(userInfo);
         return response;
     }
 
-    @Transactional
-    public void logout(String userId, String ipAddress) {
-        User user = userRepository.findById(Long.parseLong(userId))
-                        .orElseThrow(() -> new BusinessException("Usuario no encontrado."));
-        auditService.log("LOGOUT", user.getEmail(), "Cierre de sesión", ipAddress);
-    }
+    // ── Register ─────────────────────────────────────────────────────
 
     @Transactional
     public AuthResponse register(RegisterRequest request, String ipAddress) {
-        // 1. Llamar al user-service para crear el usuario completo
-        UserServiceResponse userResponse = webClientBuilder.build()
-                .post()
-                .uri(apiGatewayUrl + "/api/users/register")
-                .header("X-Internal-Secret", internalSecret)
-                .bodyValue(new UserServiceRequest(request.getEmail(), request.getRole()))
-                .retrieve()
-                .onStatus(status -> status.is4xxClientError(), clientResponse ->
-                        clientResponse.bodyToMono(String.class)
-                                .map(body -> new BusinessException(body)))
-                .bodyToMono(UserServiceResponse.class)
-                .block();
-
-        // 2. Verificar que el correo no esté ya registrado
-        if (userRepository.existsByEmail(userResponse.getEmail())) {
-            throw new BusinessException("El correo ya está registrado");
+        // Solo INVITED y PLAYER pueden registrarse directamente
+        // CAPTAIN lo asigna el sistema, ORGANIZER y ADMIN los asigna el ADMIN
+        if (request.getRole() != Role.INVITED && request.getRole() != Role.PLAYER) {
+            throw new BusinessException("Al registrarse solo puede seleccionar el rol INVITED o PLAYER");
         }
 
-        // 3. Guardar solo las credenciales en nuestra tabla
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new BusinessException("Ya existe un usuario con ese correo");
+        }
+
+        // Call users-and-players-ms to create the full user profile
+        UserServiceClient.CreateUserRequest userRequest = new UserServiceClient.CreateUserRequest();
+        userRequest.setName(request.getFullName());
+        userRequest.setEmail(request.getEmail());
+        userRequest.setBirthDate(request.getBirthDate());
+        userRequest.setRelationship(request.getRelationship());
+        userRequest.setAcademicProgram(request.getProgram());
+        userRequest.setSemester(request.getSemester());
+        userRequest.setIdentificationType(request.getDocumentType());
+        userRequest.setIdentificationNumber(request.getDocumentNumber());
+        userRequest.setPhone(request.getPhone());
+        userRequest.setPassword(request.getPassword());
+
+        UserServiceClient.UserServiceResponse userResponse = userServiceClient.createUser(userRequest);
+
+        // Save credentials in identity-ms
         User credentials = new User();
-        credentials.setEmail(userResponse.getEmail());
+        credentials.setEmail(request.getEmail());
         credentials.setPassword(passwordEncoder.encode(request.getPassword()));
-        credentials.setRole(Role.valueOf(userResponse.getRol()));
-        credentials.setActive(true);
-        userRepository.save(credentials);
+        credentials.setRole(request.getRole());
+        credentials.setStatus(UserStatus.ACTIVE);
+        credentials.setUsersMsUserId(userResponse.getId());
+        User savedUser = userRepository.save(credentials);
 
-        // 4. Generar JWT
-        String token = jwtUtil.generateToken(
-                String.valueOf(credentials.getId()),
-                userResponse.getEmail(),
-                userResponse.getRol());
+        String token = jwtUtil.generateToken(savedUser.getId(), savedUser.getEmail(),
+                savedUser.getRole().name(), request.getFullName());
 
-        // 5. Auditoría
-        auditService.log("REGISTER", userResponse.getEmail(), "Registro exitoso", ipAddress);
+        auditService.log("REGISTER", request.getEmail(), "Registro exitoso", ipAddress);
 
-        // 6. Devolver respuesta
-        AuthResponse response = new AuthResponse();
-        response.setId(userResponse.getId());
-        response.setToken(token);
-        response.setEmail(userResponse.getEmail());
-        response.setRole(userResponse.getRol());
-        response.setExpiresIn(jwtUtil.getExpirationTime());
-        return response;
+        String rawRefreshToken = refreshTokenService.createRefreshToken(
+                savedUser.getId(), savedUser.getUsersMsUserId());
+
+        return buildAuthResponse(savedUser.getId(), savedUser.getEmail(),
+                savedUser.getRole().name(), request.getFullName(), token, rawRefreshToken);
     }
 
+    // ── Update role ──────────────────────────────────────────────────
+
     @Transactional
-    public void changeRol(Long userId, String newRol, String ipAddress) {
+    public User updateUserRole(Long userId, String newRole, Long requesterId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException("Usuario no encontrado"));
 
-        if (!user.getActive()) {
-            throw new BusinessException("Usuario inactivo. No se puede cambiar el rol.");
+        User requester = userRepository.findById(requesterId)
+                .orElseThrow(() -> new BusinessException("Solicitante no encontrado"));
+
+        String requesterRole = requester.getRole().name();
+
+        if (userId.equals(requesterId)) {
+            boolean invitedToPlayer  = "INVITED".equals(user.getRole().name()) && "PLAYER".equals(newRole);
+            boolean playerToCaptain  = "PLAYER".equals(user.getRole().name())  && "CAPTAIN".equals(newRole);
+            if (!invitedToPlayer && !playerToCaptain) {
+                throw new BusinessException("Auto-promoción no permitida: solo INVITED→PLAYER o PLAYER→CAPTAIN");
+            }
+        } else if (!"ADMIN".equals(requesterRole)) {
+            throw new BusinessException("No tienes permisos para cambiar roles");
         }
 
-        Role rolAnterior = user.getRole();
-        Role rol;
+        user.setRole(Role.valueOf(newRole));
+        User savedUser = userRepository.save(user);
 
-        try {
-            rol = Role.valueOf(newRol.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException("Rol inválido: " + newRol +
-                    ". Valores válidos: INVITED, PLAYER, CAPTAIN, ORGANIZER, REFEREE, ADMIN");
+        // Sync role to users-and-players-ms (best-effort)
+        if (user.getUsersMsUserId() != null) {
+            try {
+                userServiceClient.updateSystemRole(user.getUsersMsUserId(),
+                        new UserServiceClient.UpdateSystemRoleRequest(newRole));
+            } catch (Exception e) {
+                log.warn("Failed to sync role to users-ms for user {}: {}", userId, e.getMessage());
+            }
         }
 
-        // El organizador no puede asignar ADMIN
-        if (rol == Role.ADMIN) {
-            throw new BusinessException(
-                    "No se puede asignar el rol de administrador");
-        }
-
-        user.setRole(rol);
-        userRepository.save(user);
-
-        auditService.log("CAMBIO_ROL", user.getEmail(),
-                "Rol cambiado de " + rolAnterior + " a " + rol, ipAddress);
+        log.info("Role updated: userId={} newRole={} by requesterId={}", userId, newRole, requesterId);
+        return savedUser;
     }
 
+    // ── Update status (ADMIN only) ───────────────────────────────────
+
+    /**
+     * Changes the status of a user between ACTIVE and INACTIVE.
+     * Rules:
+     *  - Only ADMIN can call this.
+     *  - Cannot inactivate a user who is on a team enrolled in an ACTIVE or IN_PROGRESS tournament.
+     *    That check is delegated to users-ms via Feign (best-effort: if users-ms is down, the
+     *    operation is blocked to protect data integrity).
+     */
     @Transactional
-    public AuthResponse refeshToken(String token, String ipAddress) {
-        // Extraemos al usuario
-        String userId = jwtUtil.extractUserIdIgnoringExpiration(token);
+    public User updateUserStatus(Long userId, UserStatus newStatus, Long requesterId) {
+        User requester = userRepository.findById(requesterId)
+                .orElseThrow(() -> new BusinessException("Solicitante no encontrado"));
 
-        // Busca al usuario
-        User user = userRepository.findById(Long.parseLong(userId))
-                .orElseThrow(() -> new BusinessException("Usuario no encontrado"));
-
-        // Válida que el usuario no sea inactivo
-        if (!user.getActive()) {
-            throw new BusinessException("Usuario inactivo.");
+        if (!"ADMIN".equals(requester.getRole().name())) {
+            throw new BusinessException("Solo el administrador puede cambiar el estado de un usuario");
         }
 
-        // Genera nuevo token con el rol actualizado de la BD
-        String newToken = jwtUtil.generateToken(
-                String.valueOf(user.getId()),
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("Usuario no encontrado"));
+
+        if (newStatus == UserStatus.INACTIVE && user.getStatus() == UserStatus.INACTIVE) {
+            throw new BusinessException("El usuario ya está inactivo");
+        }
+
+        if (newStatus == UserStatus.ACTIVE && user.getStatus() == UserStatus.ACTIVE) {
+            throw new BusinessException("El usuario ya está activo");
+        }
+
+        // Block inactivation if user has active tournament enrollment
+        if (newStatus == UserStatus.INACTIVE && user.getUsersMsUserId() != null) {
+            try {
+                Boolean hasEnrollment = userServiceClient.hasActiveEnrollment(user.getUsersMsUserId());
+                if (Boolean.TRUE.equals(hasEnrollment)) {
+                    throw new BusinessException(
+                            "No se puede inactivar el usuario: está vinculado a un equipo en un torneo activo o en progreso");
+                }
+            } catch (BusinessException e) {
+                throw e;
+            } catch (Exception e) {
+                log.warn("Could not verify active enrollment for user {}: {}. Blocking inactivation to be safe.",
+                        userId, e.getMessage());
+                throw new BusinessException(
+                        "No se pudo verificar el estado del torneo. Intente más tarde.");
+            }
+        }
+
+        user.setStatus(newStatus);
+        User savedUser = userRepository.save(user);
+
+        auditService.log(
+                "STATUS_CHANGE",
                 user.getEmail(),
-                user.getRole().name());
+                "Estado cambiado a " + newStatus.name() + " por admin id=" + requesterId,
+                null
+        );
 
-        auditService.log("REFRESH_TOKEN", userId,
-                "Token renovado con rol: " + user.getRole().name(), ipAddress);
+        log.info("Status updated: userId={} newStatus={} by adminId={}", userId, newStatus, requesterId);
+        return savedUser;
+    }
 
-        AuthResponse response = new AuthResponse();
-        response.setId(user.getId());
-        response.setToken(newToken);
-        response.setEmail(user.getEmail());
-        response.setRole(user.getRole().name());
-        response.setExpiresIn(jwtUtil.getExpirationTime());
-        return response;
+    // ── Helper ───────────────────────────────────────────────────────
+
+    private AuthResponse buildAuthResponse(Long id, String email, String role,
+                                           String name, String accessToken,
+                                           String rawRefreshToken) {
+        AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(id, email, role, name);
+        return new AuthResponse(accessToken, jwtUtil.getExpirationTime(), userInfo, rawRefreshToken);
     }
 }

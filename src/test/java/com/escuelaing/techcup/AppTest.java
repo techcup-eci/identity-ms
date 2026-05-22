@@ -19,7 +19,7 @@ class AppTest {
 
     @Test
     void tokenGenerationAndValidation() {
-        String token = jwtUtil.generateToken("1", "test@test.com", "PLAYER");
+        String token = jwtUtil.generateToken("test@test.com", "PLAYER");
         assertNotNull(token);
         assertTrue(jwtUtil.validateToken(token));
         assertEquals("test@test.com", jwtUtil.extractEmail(token));

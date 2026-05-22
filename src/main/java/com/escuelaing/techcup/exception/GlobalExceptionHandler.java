@@ -14,8 +14,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Map<String, String>> handleBusinessException(BusinessException ex) {
         Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        String message = ex.getMessage();
+
+        // Auth-related errors → 401, everything else → 400
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        if (message.contains("Credenciales") || message.contains("inactivo") || message.contains("Token")) {
+            status = HttpStatus.UNAUTHORIZED;
+        }
+
+        error.put("error", message);
+        return ResponseEntity.status(status).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
