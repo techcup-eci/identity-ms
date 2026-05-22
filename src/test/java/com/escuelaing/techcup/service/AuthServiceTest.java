@@ -28,8 +28,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
- * TDD: Unit tests for AuthService.register() using OpenFeign client.
- * Tests the complete registration flow: validate → Feign call → save credentials → JWT.
+ *  TDD: Unit tests for AuthService.register() using WebClient-based UserServiceClient.
+ * Tests the complete registration flow: validate → WebClient call → save credentials → JWT.
  */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -86,11 +86,9 @@ class AuthServiceTest {
             // Setup: email does NOT exist in identity-ms
             when(userRepository.existsByEmail("test@escuelaing.edu.co")).thenReturn(false);
 
-            // Setup: Feign client returns created user with ID 99
+            // Setup: WebClient returns created user with ID 99
             UserServiceClient.UserServiceResponse feignResponse = new UserServiceClient.UserServiceResponse();
             feignResponse.setId(99L);
-            feignResponse.setEmail("test@escuelaing.edu.co");
-            feignResponse.setName("Test User");
             when(userServiceClient.createUser(any(UserServiceClient.CreateUserRequest.class)))
                     .thenReturn(feignResponse);
 
@@ -122,7 +120,7 @@ class AuthServiceTest {
             assertEquals("PLAYER", response.getUser().getRole());
             assertEquals(1L, response.getUser().getId());
 
-            // Verify Feign client was called with correct mapping
+            // Verify WebClient was called with correct mapping
             verify(userServiceClient).createUser(any(UserServiceClient.CreateUserRequest.class));
 
             // Verify credentials saved with usersMsUserId
@@ -154,14 +152,14 @@ class AuthServiceTest {
             assertThrows(BusinessException.class, () ->
                     authService.register(validRequest, "127.0.0.1"));
 
-            // Verify no Feign call was made
+            // Verify no WebClient call was made
             verify(userServiceClient, never()).createUser(any());
             verify(userRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("Should throw BusinessException when Feign client fails")
-        void shouldFailWhenFeignClientFails() {
+        @DisplayName("Should throw BusinessException when WebClient fails")
+        void shouldFailWhenWebClientFails() {
             when(userRepository.existsByEmail("test@escuelaing.edu.co")).thenReturn(false);
             when(userServiceClient.createUser(any(UserServiceClient.CreateUserRequest.class)))
                     .thenThrow(new RuntimeException("Connection refused"));

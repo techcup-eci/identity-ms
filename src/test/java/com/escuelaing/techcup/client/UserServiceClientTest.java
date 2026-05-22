@@ -16,20 +16,18 @@ class UserServiceClientTest {
         UserServiceClient.CreateUserRequest req = new UserServiceClient.CreateUserRequest();
         req.setName("Test User");
         req.setEmail("test@escuelaing.edu.co");
-        req.setSystemRole("PLAYER");
 
         assertEquals("Test User", req.getName());
         assertEquals("test@escuelaing.edu.co", req.getEmail());
-        assertEquals("PLAYER", req.getSystemRole());
     }
 
     @Test
-    @DisplayName("UpdateSystemRoleRequest must set systemRole correctly")
+    @DisplayName("UpdateSystemRoleRequest must set role correctly")
     void updateSystemRoleRequestShouldSetRole() {
         UserServiceClient.UpdateSystemRoleRequest req =
                 new UserServiceClient.UpdateSystemRoleRequest("CAPTAIN");
 
-        assertEquals("CAPTAIN", req.getSystemRole());
+        assertEquals("CAPTAIN", req.getRole());
     }
 
     @Test

@@ -1,6 +1,6 @@
 package com.escuelaing.techcup.model;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 /**
