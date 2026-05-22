@@ -6,5 +6,6 @@ public enum Role {
     CAPTAIN,      // capitán
     ORGANIZER,    // organizador
     REFEREE,      // árbitro
-    ADMIN         // administrador
+    ADMIN,        // administrador
+    USER         // usuario por defecto
 }

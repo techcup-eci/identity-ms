@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Schema(description = "Registration request with full user profile information. All fields are required unless marked optional.")
 public class RegisterRequest {
@@ -28,23 +29,26 @@ public class RegisterRequest {
     @Schema(description = "System role assigned to the user",
             example = "PLAYER", required = true,
             allowableValues = {"INVITED", "PLAYER"})
-    @NotNull(message = "El rol del sistema es requerido")
-    private Role role;
+
+    private Role role = Role.USER;
 
     @Schema(description = "User's full name as it will appear in the system",
             example = "Juan Pérez García", required = true)
     @NotBlank(message = "El nombre completo es requerido")
+    @JsonProperty("name")
     private String fullName;
 
     @Schema(description = "Relationship to the university",
             example = "STUDENT", required = true,
             allowableValues = {"STUDENT", "TEACHER", "GRADUATE", "STAFF", "FAMILY"})
     @NotBlank(message = "La relación con la universidad es requerida")
+    @JsonProperty("schoolRelation")
     private String relationship;
 
     @Schema(description = "Academic program the user belongs to",
             example = "Ingeniería de Sistemas", required = true)
     @NotBlank(message = "El programa académico es requerido")
+    @JsonProperty("academicProgram")
     private String program;
 
     @Schema(description = "Current semester (only required for STUDENT relationship)",
@@ -55,11 +59,13 @@ public class RegisterRequest {
             example = "CC", required = true,
             allowableValues = {"CC", "TI", "CE", "PP"})
     @NotBlank(message = "El tipo de documento es requerido")
+    @JsonProperty("identificationType")
     private String documentType;
 
     @Schema(description = "Identification document number",
             example = "12345678", required = true)
     @NotNull(message = "El número de documento es requerido")
+    @JsonProperty("identificationNumber")
     private Long documentNumber;
 
     private Long phone;
