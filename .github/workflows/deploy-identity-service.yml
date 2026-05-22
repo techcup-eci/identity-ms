@@ -1,9 +1,10 @@
-name: Deploy identity-service to Azure Container Apps
+name: CI/CD — identity-service
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 env:
@@ -12,10 +13,14 @@ env:
   CONTAINER_APP_NAME: identity-service
   ACR_NAME: acrtechcup
   IMAGE_NAME: identity-service
+  JAVA_VERSION: '17'
 
 jobs:
-  build-and-deploy:
+
+  deploy:
+    name: Deploy a Azure Container Apps
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout código
@@ -27,8 +32,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Login en ACR
-        run: |
-          az acr login --name ${{ env.ACR_NAME }}
+        run: az acr login --name ${{ env.ACR_NAME }}
 
       - name: Build y Push imagen Docker
         uses: docker/build-push-action@v5
@@ -45,7 +49,7 @@ jobs:
           containerAppName: ${{ env.CONTAINER_APP_NAME }}
           containerAppEnvironment: ${{ env.CONTAINER_APP_ENV }}
           imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          targetPort: 8080
+          targetPort: 8081
           ingress: external
 
       - name: Obtener URL del servicio
