@@ -151,8 +151,8 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request, String ipAddress) {
         // Solo INVITED y PLAYER pueden registrarse directamente
         // CAPTAIN lo asigna el sistema, ORGANIZER y ADMIN los asigna el ADMIN
-        if (request.getRole() != Role.INVITED && request.getRole() != Role.PLAYER) {
-            throw new BusinessException("Al registrarse solo puede seleccionar el rol INVITED o PLAYER");
+        if (request.getRole() == null) {
+            request.setRole(Role.USER);
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
