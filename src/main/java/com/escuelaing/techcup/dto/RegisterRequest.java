@@ -29,8 +29,8 @@ public class RegisterRequest {
     @Schema(description = "System role assigned to the user",
             example = "PLAYER", required = true,
             allowableValues = {"INVITED", "PLAYER"})
-
-    private Role role = Role.USER;
+    @NotNull(message = "El rol es requerido")  // ← esto faltaba
+    private Role role;                          // ← quitado el = Role.USER
 
     @Schema(description = "User's full name as it will appear in the system",
             example = "Juan Pérez García", required = true)
