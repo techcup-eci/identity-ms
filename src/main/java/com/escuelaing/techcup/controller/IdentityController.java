@@ -100,7 +100,7 @@ public class IdentityController {
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
 
-        request.setRole(Role.ADMIN); // Force role to ADMIN on registration
+        //request.setRole(Role.ADMIN); // Force role to ADMIN on registration
         AuthResponse authResponse = authService.register(request, httpRequest.getRemoteAddr());
 
         // Set refresh token as httpOnly cookie
