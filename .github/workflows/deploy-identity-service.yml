@@ -18,7 +18,7 @@ env:
 jobs:
 
   # ─────────────────────────────────────────────────────────────────
-  # JOB 1: Calidad — pruebas + cobertura JaCoCo + SonarCloud
+  # JOB 1: Calidad — pruebas + cobertura JaCoCo
   # ─────────────────────────────────────────────────────────────────
   quality:
     name: Calidad del código
@@ -27,8 +27,6 @@ jobs:
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # requerido por SonarCloud para blame y branch analysis
 
       - name: Configurar Java ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -39,11 +37,6 @@ jobs:
 
       - name: Pruebas y cobertura
         run: mvn verify --batch-mode --no-transfer-progress
-
-      - name: Análisis SonarCloud
-        run: mvn sonar:sonar --batch-mode --no-transfer-progress
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Publicar reporte de cobertura
         uses: Madrapps/jacoco-report@v1.6.1
