@@ -24,9 +24,6 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <sonar.projectKey>identity-ms</sonar.projectKey>
-        <sonar.projectName>identity-ms</sonar.projectName>
-        <sonar.host.url>http://localhost:9000</sonar.host.url>
         <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
         <sonar.exclusions>src/main/java/com/escuelaing/techcup/App.java</sonar.exclusions>
     </properties>
@@ -125,11 +122,6 @@
                         <goals><goal>report</goal></goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.sonarsource.scanner.maven</groupId>
-                <artifactId>sonar-maven-plugin</artifactId>
-                <version>4.0.0.4121</version>
             </plugin>
         </plugins>
     </build>
