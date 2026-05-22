@@ -133,6 +133,21 @@ public class IdentityController {
         return ResponseEntity.ok(authService.validate(request));
     }
 
+    // -- GET /api/identity/me -----------------------------------
+
+    @Operation(summary = "Get current user",
+            description = "Checks the Bearer token and returns the current user's profile info.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Token valid",
+                    content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token missing, invalid, or expired", content = @Content)
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/me")
+    public ResponseEntity<AuthResponse> me(HttpServletRequest request) {
+        return ResponseEntity.ok(authService.validate(request));
+    }
+
     // ── POST /api/identity/logout ────────────────────────────────────
 
     @Operation(summary = "Logout and revoke tokens",
