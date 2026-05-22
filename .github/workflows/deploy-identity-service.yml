@@ -40,6 +40,8 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          no-cache: true
+          pull: true
           tags: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Deploy en Azure Container Apps
