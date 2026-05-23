@@ -9,8 +9,8 @@ import java.time.Duration;
  *
  * Cookie settings:
  * - Name:     refresh_token
- * - Path:     /api/identity/refresh — restringido solo al endpoint de refresh
- *             para minimizar la exposición del token en otras rutas.
+ * - Path:     /api/auth — covers all auth endpoints (login, refresh, logout, etc.)
+ *             The frontend calls /api/auth/*, not /api/identity/*.
  * - HttpOnly: true (JS no puede acceder — protección XSS)
  * - Secure:   false en dev (true en producción con HTTPS)
  * - SameSite: Strict (protección CSRF)
@@ -19,7 +19,7 @@ import java.time.Duration;
 public final class CookieUtil {
 
     private static final String COOKIE_NAME = "refresh_token";
-    private static final String COOKIE_PATH = "/api/identity/refresh";
+    private static final String COOKIE_PATH = "/api/auth";
     private static final long MAX_AGE_SECONDS = Duration.ofDays(7).getSeconds();
 
     private CookieUtil() {}
