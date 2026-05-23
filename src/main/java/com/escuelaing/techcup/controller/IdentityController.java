@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/identity")
+@RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "Identity and access management — login, registration, refresh, validation, and logout")
 public class IdentityController {
 
