@@ -19,7 +19,7 @@ import java.time.Duration;
 public final class CookieUtil {
 
     private static final String COOKIE_NAME = "refresh_token";
-    private static final String COOKIE_PATH = "/api/auth";
+    private static final String COOKIE_PATH = "/api/identity"; // Cambiado a /api/auth para coincidir con el nuevo RequestMapping
     private static final long MAX_AGE_SECONDS = Duration.ofDays(7).getSeconds();
 
     private CookieUtil() {}
