@@ -76,6 +76,9 @@ public class RegisterRequest {
     @Past(message = "La fecha de nacimiento debe ser en el pasado")
     private LocalDate birthDate;
 
+    private String academicLevel;
+    private String professorType;
+
     public RegisterRequest() {}
 
     // ── Getters & Setters ────────────────────────────────────────────
@@ -112,4 +115,9 @@ public class RegisterRequest {
 
     public LocalDate getBirthDate() { return birthDate; }
     public void setBirthDate(LocalDate birthDate) { this.birthDate = birthDate; }
+
+    public String getAcademicLevel() { return academicLevel; }
+    public void setAcademicLevel(String academicLevel) { this.academicLevel = academicLevel; }
+    public String getProfessorType() { return professorType; }
+    public void setProfessorType(String professorType) { this.professorType = professorType; }
 }

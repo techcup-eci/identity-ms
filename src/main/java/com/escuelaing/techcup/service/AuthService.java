@@ -171,6 +171,8 @@ public class AuthService {
         userRequest.setIdentificationNumber(request.getDocumentNumber());
         userRequest.setPhone(request.getPhone());
         userRequest.setPassword(request.getPassword());
+        userRequest.setAcademicLevel(request.getAcademicLevel());
+        userRequest.setProfessorType(request.getProfessorType());
 
         UserServiceClient.UserServiceResponse userResponse = userServiceClient.createUser(userRequest);
 
