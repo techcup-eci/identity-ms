@@ -21,7 +21,7 @@ class CookieUtilTest {
         assertEquals("refresh_token", cookie.getName());
         assertEquals(rawToken, cookie.getValue());
         assertTrue(cookie.isHttpOnly(), "Must be httpOnly to prevent JS access");
-        assertEquals("/api/identity/refresh", cookie.getPath(),
+        assertEquals("/api/auth/refresh", cookie.getPath(),
                 "Cookie path must be restricted to refresh endpoint");
         assertEquals(604800, cookie.getMaxAge().getSeconds(),
                 "MaxAge must be 7 days (604800 seconds)");
@@ -37,7 +37,7 @@ class CookieUtilTest {
         assertEquals("", cookie.getValue());
         assertEquals(0, cookie.getMaxAge().getSeconds(),
                 "Clear cookie must have maxAge=0 to remove from browser");
-        assertEquals("/api/identity/refresh", cookie.getPath(),
+        assertEquals("/api/auth/refresh", cookie.getPath(),
                 "Clear cookie must have same path as the original");
     }
 
