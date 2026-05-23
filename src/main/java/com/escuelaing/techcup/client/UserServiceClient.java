@@ -74,6 +74,7 @@ public class UserServiceClient {
         private String name;
         private String email;
         private LocalDate birthDate;
+        @com.fasterxml.jackson.annotation.JsonProperty("schoolRelation")
         private String relationship;
         private String academicProgram;
         private Integer semester;
