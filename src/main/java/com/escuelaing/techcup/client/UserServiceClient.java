@@ -81,6 +81,8 @@ public class UserServiceClient {
         private Long identificationNumber;
         private Long phone;
         private String password;
+        private String academicLevel;
+        private String professorType;
 
         public CreateUserRequest() {}
 
@@ -104,6 +106,10 @@ public class UserServiceClient {
         public void setPhone(Long phone) { this.phone = phone; }
         public String getPassword() { return password; }
         public void setPassword(String password) { this.password = password; }
+        public String getAcademicLevel() { return academicLevel; }
+        public void setAcademicLevel(String academicLevel) { this.academicLevel = academicLevel; }
+        public String getProfessorType() { return professorType; }
+        public void setProfessorType(String professorType) { this.professorType = professorType; }
     }
 
     // ── Response — solo necesitamos el id ────────────────────────────
