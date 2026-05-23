@@ -1,12 +1,15 @@
 package com.escuelaing.techcup.security;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Tests for JwtUtil — validates token generation with userId, extraction of claims,
+ * and security configuration alignment with orchestrator AuthFilter.
+ */
 class JwtUtilTest {
 
     private JwtUtil jwtUtil;
@@ -14,71 +17,146 @@ class JwtUtilTest {
     @BeforeEach
     void setUp() {
         jwtUtil = new JwtUtil();
-        ReflectionTestUtils.setField(jwtUtil, "secretKey",
-                "TechCupSecretKey2024VerySecureLongKeyForJWT");
-        ReflectionTestUtils.setField(jwtUtil, "expirationTime", 36000000L);
+        ReflectionTestUtils.setField(jwtUtil, "secretKey", "TechCupSecretKey2024DefaultOnlyForDev");
+        ReflectionTestUtils.setField(jwtUtil, "expirationTime", 900000L); // 15 min
     }
 
     @Test
-    @DisplayName("generateToken crea un token no nulo")
-    void generateToken_noNulo() {
-        String token = jwtUtil.generateToken("1","user@techcup.com", "PLAYER");
+    void generateTokenWithUserIdShouldIncludeAllClaims() {
+        String token = jwtUtil.generateToken(42L, "test@escuelaing.edu.co", "PLAYER", "Test User");
+
+        assertNotNull(token, "Token must not be null");
+        assertFalse(token.isEmpty(), "Token must not be empty");
+    }
+
+    @Test
+    void extractUserIdShouldReturnUserIdFromSubClaim() {
+        String token = jwtUtil.generateToken(42L, "test@escuelaing.edu.co", "PLAYER", "Test User");
+
+        String userId = jwtUtil.extractUserId(token);
+
+        assertEquals("42", userId, "extractUserId must return the userId as String from sub claim");
+    }
+
+    @Test
+    void extractEmailShouldReturnEmailClaim() {
+        String token = jwtUtil.generateToken(42L, "test@escuelaing.edu.co", "PLAYER", "Test User");
+
+        String email = jwtUtil.extractEmail(token);
+
+        assertEquals("test@escuelaing.edu.co", email, "extractEmail must return the email claim");
+    }
+
+    @Test
+    void extractRoleShouldReturnRoleClaim() {
+        String token = jwtUtil.generateToken(42L, "test@escuelaing.edu.co", "CAPTAIN", "Test User");
+
+        String role = jwtUtil.extractRole(token);
+
+        assertEquals("CAPTAIN", role, "extractRole must return the role claim");
+    }
+
+    @Test
+    void extractNameShouldReturnNameClaim() {
+        String token = jwtUtil.generateToken(42L, "test@escuelaing.edu.co", "PLAYER", "Test User");
+
+        String name = jwtUtil.extractName(token);
+
+        assertEquals("Test User", name, "extractName must return the name claim");
+    }
+
+    @Test
+    void validateTokenShouldReturnTrueForValidToken() {
+        String token = jwtUtil.generateToken(42L, "test@escuelaing.edu.co", "PLAYER", "Test User");
+
+        assertTrue(jwtUtil.validateToken(token), "validateToken must return true for a valid token");
+    }
+
+    @Test
+    void validateTokenWithUsernameShouldMatchEmail() {
+        String token = jwtUtil.generateToken(42L, "test@escuelaing.edu.co", "PLAYER", "Test User");
+
+        assertTrue(jwtUtil.validateToken(token, "test@escuelaing.edu.co"),
+                "validateToken with matching username must return true");
+    }
+
+    @Test
+    void validateTokenWithWrongUsernameShouldFail() {
+        String token = jwtUtil.generateToken(42L, "test@escuelaing.edu.co", "PLAYER", "Test User");
+
+        assertFalse(jwtUtil.validateToken(token, "wrong@email.com"),
+                "validateToken with wrong username must return false");
+    }
+
+    @Test
+    void legacyGenerateTokenShouldStillWork() {
+        String token = jwtUtil.generateToken("legacy@escuelaing.edu.co", "PLAYER");
+
         assertNotNull(token);
-        assertFalse(token.isEmpty());
-    }
-
-    @Test
-    @DisplayName("extractEmail extrae el email correcto del token")
-    void extractEmail_correcto() {
-        String token = jwtUtil.generateToken("1","user@techcup.com", "PLAYER");
-        assertEquals("user@techcup.com", jwtUtil.extractEmail(token));
-    }
-
-    @Test
-    @DisplayName("extractRole extrae el rol correcto del token")
-    void extractRole_correcto() {
-        String token = jwtUtil.generateToken("1","user@techcup.com", "ADMIN");
-        assertEquals("ADMIN", jwtUtil.extractRole(token));
-    }
-
-    @Test
-    @DisplayName("validateToken retorna true para un token válido")
-    void validateToken_valido() {
-        String token = jwtUtil.generateToken("1","user@techcup.com", "PLAYER");
         assertTrue(jwtUtil.validateToken(token));
+        assertEquals("legacy@escuelaing.edu.co", jwtUtil.extractEmail(token));
+        assertEquals("PLAYER", jwtUtil.extractRole(token));
     }
 
     @Test
-    @DisplayName("validateToken retorna false para un token inválido")
-    void validateToken_invalido() {
-        assertFalse(jwtUtil.validateToken("token.invalido.aqui"));
+    void differentUserIdsShouldProduceDifferentTokens() {
+        String token1 = jwtUtil.generateToken(1L, "a@b.com", "PLAYER", "User A");
+        String token2 = jwtUtil.generateToken(2L, "a@b.com", "PLAYER", "User A");
+
+        assertNotEquals(token1, token2, "Tokens for different userIds must be different");
     }
 
     @Test
-    @DisplayName("validateToken con username retorna true cuando coincide")
-    void validateToken_conUserId_coincide() {
-        String token = jwtUtil.generateToken("1","user@techcup.com", "PLAYER");
-        assertTrue(jwtUtil.validateToken(token, "1"));
+    void expiredTokenShouldFailValidation() throws InterruptedException {
+        // Set expiration to 1ms
+        ReflectionTestUtils.setField(jwtUtil, "expirationTime", 1L);
+        String token = jwtUtil.generateToken(42L, "test@escuelaing.edu.co", "PLAYER", "Test User");
+
+        // Wait for token to expire
+        Thread.sleep(10);
+
+        assertFalse(jwtUtil.validateToken(token), "Expired token must fail validation");
+    }
+
+    // --- Refresh token generation tests ---
+
+    @Test
+    void generateRefreshTokenShouldReturnNonNullPair() {
+        JwtUtil.TokenPair pair = jwtUtil.generateRefreshToken();
+
+        assertNotNull(pair, "TokenPair must not be null");
+        assertNotNull(pair.getRaw(), "Raw token must not be null");
+        assertNotNull(pair.getHashed(), "Hashed token must not be null");
     }
 
     @Test
-    @DisplayName("validateToken con username retorna false cuando no coincide")
-    void validateToken_conUserId_noCoincide() {
-        String token = jwtUtil.generateToken("1","user@techcup.com", "PLAYER");
-        assertFalse(jwtUtil.validateToken(token, "555"));
+    void generateRefreshTokenShouldProduceUuidFormatRawToken() {
+        JwtUtil.TokenPair pair = jwtUtil.generateRefreshToken();
+
+        assertTrue(pair.getRaw().matches(
+                "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"),
+                "Raw token must be UUID format");
     }
 
     @Test
-    @DisplayName("getExpirationTime retorna el valor configurado")
-    void getExpirationTime_correcto() {
-        assertEquals(36000000L, jwtUtil.getExpirationTime());
+    void generateRefreshTokenShouldHashWithSha256() {
+        JwtUtil.TokenPair pair = jwtUtil.generateRefreshToken();
+        String expectedHash = JwtUtil.sha256Hex(pair.getRaw());
+
+        assertEquals(64, pair.getHashed().length(),
+                "SHA-256 hash must be 64 hex characters");
+        assertEquals(expectedHash, pair.getHashed(),
+                "Hashed value must match SHA-256 of raw token");
     }
 
     @Test
-    @DisplayName("token expirado no es válido")
-    void validateToken_expirado() {
-        ReflectionTestUtils.setField(jwtUtil, "expirationTime", -1000L);
-        String token = jwtUtil.generateToken("1","user@techcup.com", "PLAYER");
-        assertFalse(jwtUtil.validateToken(token));
+    void generateRefreshTokenShouldProduceDifferentTokensOnEachCall() {
+        JwtUtil.TokenPair pair1 = jwtUtil.generateRefreshToken();
+        JwtUtil.TokenPair pair2 = jwtUtil.generateRefreshToken();
+
+        assertNotEquals(pair1.getRaw(), pair2.getRaw(),
+                "Raw tokens must be unique on each call");
+        assertNotEquals(pair1.getHashed(), pair2.getHashed(),
+                "Hashed tokens must be unique on each call");
     }
 }

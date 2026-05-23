@@ -2,6 +2,7 @@ package com.escuelaing.techcup.config;
 
 import com.escuelaing.techcup.model.Role;
 import com.escuelaing.techcup.model.User;
+import com.escuelaing.techcup.model.UserStatus;
 import com.escuelaing.techcup.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +33,9 @@ public class DataInitializer implements CommandLineRunner {
             admin.setEmail("admin@techcup.com");
             admin.setPassword(passwordEncoder.encode(adminDefaultPassword));
             admin.setRole(Role.ADMIN);
-            admin.setActive(true);
+            admin.setStatus(UserStatus.ACTIVE);
             userRepository.save(admin);
-            log.info("Admin creado correctamente");
+            log.info("Usuario administrador creado correctamente");
         } else {
             log.info("Usuario administrador ya existe, omitiendo creación");
         }

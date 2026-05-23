@@ -1,9 +1,10 @@
-name: Deploy identity-service to Azure Container Apps
+name: CI/CD — identity-service
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 env:
@@ -12,10 +13,57 @@ env:
   CONTAINER_APP_NAME: identity-service
   ACR_NAME: acrtechcup
   IMAGE_NAME: identity-service
+  JAVA_VERSION: '17'
 
 jobs:
-  build-and-deploy:
+
+  # ─────────────────────────────────────────────────────────────────
+  # JOB 1: Calidad — pruebas + cobertura JaCoCo
+  # ─────────────────────────────────────────────────────────────────
+  quality:
+    name: Calidad del código
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      - name: Pruebas y cobertura
+        run: mvn verify --batch-mode --no-transfer-progress
+
+      - name: Publicar reporte de cobertura
+        uses: Madrapps/jacoco-report@v1.6.1
+        if: always()
+        with:
+          paths: target/site/jacoco/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 70
+          min-coverage-changed-files: 70
+          title: 'Cobertura — identity-service'
+
+      - name: Subir reporte JaCoCo
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────────
+  # JOB 2: Deploy — solo si quality pasó y es push a main
+  # ─────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy a Azure Container Apps
+    runs-on: ubuntu-latest
+    needs: quality
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout código
@@ -27,8 +75,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Login en ACR
-        run: |
-          az acr login --name ${{ env.ACR_NAME }}
+        run: az acr login --name ${{ env.ACR_NAME }}
 
       - name: Build y Push imagen Docker
         uses: docker/build-push-action@v5
@@ -36,6 +83,8 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          no-cache: true
+          pull: true
           tags: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Deploy en Azure Container Apps
@@ -45,7 +94,7 @@ jobs:
           containerAppName: ${{ env.CONTAINER_APP_NAME }}
           containerAppEnvironment: ${{ env.CONTAINER_APP_ENV }}
           imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          targetPort: 8080
+          targetPort: 8081
           ingress: external
 
       - name: Obtener URL del servicio
