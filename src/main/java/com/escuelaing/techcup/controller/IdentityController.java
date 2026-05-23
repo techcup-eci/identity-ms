@@ -136,4 +136,23 @@ public class IdentityController {
         authService.changeRol(userId, newRol, request.getRemoteAddr());
         return ResponseEntity.ok("Rol actualizado correctamente");
     }
+
+    @PatchMapping("/users/{userId}")
+    public ResponseEntity<void> changeRolToCaptain(
+            @PathVariable Long userId) {
+        authService.changeRol(userId, Role.CAPTAIN);
+        return ResponseEntity.ok().build();
+    } 
+
+    @PatchMapping("/users/{userId}")
+    public ResponseEntity<void> changeRolToPlayer(
+            @PathVariable Long userId) {
+        authService.changeRol(userId, Role.PLAYER);
+        return ResponseEntity.ok().build();
+    }
+
+
+
+
+
 }

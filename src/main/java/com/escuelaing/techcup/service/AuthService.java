@@ -151,6 +151,13 @@ public class AuthService {
                 "Rol cambiado de " + rolAnterior + " a " + rol, ipAddress);
     }
 
+    public void changeRol(Long userId, Role newRol) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("Usuario no encontrado"));
+        user.setRole(newRol);
+        userRepository.save(user);
+    }
+
     @Transactional
     public AuthResponse refeshToken(String token, String ipAddress) {
         // Extraemos al usuario
