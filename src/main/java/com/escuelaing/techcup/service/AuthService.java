@@ -236,7 +236,21 @@ public class AuthService {
         return savedUser;
     }
 
+<<<<<<< HEAD
+    public void changeRol(Long userId, Role newRol) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("Usuario no encontrado"));
+        user.setRole(newRol);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public AuthResponse refeshToken(String token, String ipAddress) {
+        // Extraemos al usuario
+        String userId = jwtUtil.extractUserIdIgnoringExpiration(token);
+=======
     // ── Update status (ADMIN only) ───────────────────────────────────
+>>>>>>> 72213df73f487ff1148d79e23223c1293e2d2f97
 
     /**
      * Changes the status of a user between ACTIVE and INACTIVE.

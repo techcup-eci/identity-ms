@@ -226,41 +226,48 @@ public class IdentityController {
     @Operation(summary = "Change user status (ADMIN only)",
             description = "Activates or inactivates a user. Cannot inactivate a user enrolled in an active tournament.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Status updated"),
-            @ApiResponse(responseCode = "400", description = "User already has that status or has active enrollment"),
-            @ApiResponse(responseCode = "403", description = "Only ADMIN can change status"),
-            @ApiResponse(responseCode = "404", description = "User not found")
+            @ApiResponse(responseCode = "200", description = "Rol actualizado correctamente",
+                    content = @Content),
+            @ApiResponse(responseCode = "400", description = "Rol inválido",
+                    content = @Content),
+            @ApiResponse(responseCode = "401", description = "No autenticado",
+                    content = @Content),
+            @ApiResponse(responseCode = "403", description = "No tiene permisos de administrador",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "Usuario no encontrado",
+                    content = @Content)
     })
-    @SecurityRequirement(name = "bearerAuth")
-    @PatchMapping("/users/{id}/status")
-    public ResponseEntity<?> updateUserStatus(
-            @PathVariable Long id,
-            @RequestBody Map<String, String> body,
-            @AuthenticationPrincipal UserDetails userDetails) {
 
-        String statusStr = body.get("status");
-        if (statusStr == null || statusStr.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "El campo 'status' es requerido"));
+    @PatchMapping("/users/{userId}/rol")
+    public ResponseEntity<?> changeRol(
+            @PathVariable Long userId,
+            @RequestParam String newRol,
+            @RequestHeader("X-User-Role") String userRole,
+            HttpServletRequest request) {
+        if (!"ROLE_ADMIN".equals(userRole) && !"ADMIN".equals(userRole)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Solo el administrador puede cambiar roles");
         }
-
-        UserStatus newStatus;
-        try {
-            newStatus = UserStatus.valueOf(statusStr.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Estado inválido. Valores permitidos: ACTIVE, INACTIVE"));
-        }
-
-        User requester = authService.findByEmail(userDetails.getUsername());
-        if (requester == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "No autorizado"));
-        }
-
-        User updated = authService.updateUserStatus(id, newStatus, requester.getId());
-        return ResponseEntity.ok(Map.of(
-                "id",     updated.getId(),
-                "email",  updated.getEmail(),
-                "status", updated.getStatus().name()
-        ));
+        authService.changeRol(userId, newRol, request.getRemoteAddr());
+        return ResponseEntity.ok("Rol actualizado correctamente");
     }
+
+    @PatchMapping("/users/{userId}")
+    public ResponseEntity<void> changeRolToCaptain(
+            @PathVariable Long userId) {
+        authService.changeRol(userId, Role.CAPTAIN);
+        return ResponseEntity.ok().build();
+    } 
+
+    @PatchMapping("/users/{userId}")
+    public ResponseEntity<void> changeRolToPlayer(
+            @PathVariable Long userId) {
+        authService.changeRol(userId, Role.PLAYER);
+        return ResponseEntity.ok().build();
+    }
+
+
+
+
+
 }
